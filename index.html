@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шахматный сайт</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboard@1.0.0/dist/chessboard.min.css">
+    <style>
+        #board {
+            width: 500px;
+            margin: 20px auto;
+        }
+        .btn-wrapper {
+            text-align: center;
+            margin: 20px;
+        }
+        .game-button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #status-wrapper, #pgn-wrapper {
+            text-align: center;
+            margin: 10px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="text-align: center;">Шахматы онлайн</h1>
+
+    <div id="board"></div>
+    <p id="status-wrapper">Status: <span id="status">Ожидание...</span></p>
+    <p id="pgn-wrapper">PGN: <span id="pgn">---</span></p>
+
+    <div class="btn-wrapper">
+       <input class="game-button" type="button" id="startBtn" value="Start" />
+       <input class="game-button" type="button" id="clearBtn" value="Clear" />
+       <input class="game-button" type="button" id="colorBtn" value="Flip" />
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chessboard@1.0.0/dist/chessboard.js"></script>
+
+    <script>
+    // Инициализация переменных
+    var board,
+        game = new Chess(),
+        stockfish = new Worker('stockfish.js'),  // Локальный Stockfish
+        statusEl = document.getElementById('status'),
+        pgnEl = document.getElementById('pgn');
+
+    // Обработка начала перетаскивания
+    var onDragStart = function(source, piece, position, orientation) {
+        if (game.game_over()) return false;
+        if ((game.turn() === 'w' && piece.search(/^b/) !== -1) || 
+            (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+            return false;
+        }
+    };
+
+    var onDrop = function(source, target) {
+        var move = game.move({
+            from: source,
+            to: target,
+            promotion: 'q'  // Автоповышение до ферзя
+        });
+
+        if (move === null) return 'snapback';
+        updateStatus();
+        stockfish.postMessage('position startpos moves ' + game.history().join(' '));
+        stockfish.postMessage('go depth 15');
+    };
+
+    var updateStatus = function() {
+        var status = '';
+        var moveColor = (game.turn() === 'b') ? 'Черные' : 'Белые';
+
+        if (game.in_checkmate()) {
+            status = 'Мат! ' + moveColor + ' проиграли.';
+        } else if (game.in_draw()) {
+            status = 'Ничья.';
+        } else {
+            status = moveColor + ' делают ход.';
+            if (game.in_check()) {
+                status += ' ' + moveColor + ' под шахом!';
+            }
+        }
+
+        statusEl.innerHTML = status;
+        pgnEl.innerHTML = game.pgn();
+    };
+
+    var onSnapEnd = function() {
+        board.position(game.fen());
+    };
+
+    document.getElementById('colorBtn').onclick = function() {
+        board.flip();
+    };
+
+    document.getElementById('clearBtn').onclick = function() {
+        game.reset();
+        board.start();
+        updateStatus();
+    };
+
+    document.getElementById('startBtn').onclick = function() {
+        game.reset();
+        board.start();
+        updateStatus();
+    };
+
+    var cfg = {
+        draggable: true,
+        position: 'start',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd,
+    };
+
+    board = Chessboard('board', cfg);
+    updateStatus();
+
+    stockfish.onmessage = function(event) {
+        if (event.data.startsWith('bestmove')) {
+            var bestMove = event.data.split(' ')[1];
+            statusEl.innerHTML += '<br>Рекомендация Stockfish: ' + bestMove;
+        }
+    };
+    </script>
+
+</body>
+</html>
