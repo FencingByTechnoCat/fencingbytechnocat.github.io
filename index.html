@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Шахматный сайт</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboard@1.0.0/dist/chessboard.min.css">
+    <!-- Локальная загрузка CSS -->
+    <link rel="stylesheet" href="assets/chessboard.min.css">
     <style>
         #board {
             width: 500px;
@@ -41,14 +42,16 @@
        <input class="game-button" type="button" id="colorBtn" value="Flip" />
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chessboard@1.0.0/dist/chessboard.js"></script>
+    <!-- Локальная загрузка JavaScript -->
+    <script src="assets/chessboard.js"></script>
+    <script src="assets/chess.js"></script>
+    <script src="assets/stockfish.js"></script>
 
     <script>
     // Инициализация переменных
     var board,
         game = new Chess(),
-        stockfish = new Worker('stockfish.js'),  // Локальный Stockfish
+        stockfish = new Worker('assets/stockfish.js'),  // Локальный Stockfish
         statusEl = document.getElementById('status'),
         pgnEl = document.getElementById('pgn');
 
